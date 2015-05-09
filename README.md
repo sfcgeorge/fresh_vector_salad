@@ -6,7 +6,7 @@ See [vector_salad](https://github.com/sfcgeorge/vector_salad) for more informati
 
 ## Contributing
 
-1. Fork it ( https://github.com/[my-github-username]/fresh_vector_salad/fork )
+1. Fork it ( https://github.com/sfcgeorge/fresh_vector_salad/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
