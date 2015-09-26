@@ -1,109 +1,67 @@
 #!/usr/bin/env ruby
 
-require 'fresh_vector_salad'
-require 'optparse'
-require 'ostruct'
-require 'tk'
-require 'tkextlib/tkimg'
-require 'open3'
-require 'expect'
-require 'pty'
+require "vector_salad/optparse"
+require "fresh_vector_salad"
+require "optparse"
+require "ostruct"
+require "tk"
+require "tkextlib/tkimg"
+require "open3"
+require "expect"
+require "pty"
 #require 'listen'
 
 module FreshVectorSalad
-  class FreshOptparse
-    #
-    # Return a structure describing the options.
-    #
-    def self.parse(args)
-      # The options specified on the command line will be collected in *options*.
-      # We set default values here.
-      options = OpenStruct.new
-      options.verbose = false
-      options.dpi = 90
-
-      opt_parser = OptionParser.new do |opts|
-        opts.banner = "Usage: vrs [options]"
-
-        opts.separator ""
-        opts.separator "Specific options:"
-
-        opts.on('-p', "--path PATH",
-                "PATH to the files.") do |path|
-          #strip trailing slash
-          path = path =~ /\/\z/ ? path[0..-2] : path
-          options.path = path
-        end
-
-        opts.on('-d', "--dpi [DPI]",
-                "Export DPI (default 90). Use to shrink or expand the preview.") do |dpi|
-          options.dpi = dpi
-        end
-
-        opts.on("--crop CROP",
-                "Set width and height manually, format WIDTHxHEIGHT, e.g: 400x600.") do |crop|
-          options.width, options.height = crop.split('x').map(&:to_i)
-        end
-
-        opts.on('-f', "--filename FILENAME",
-                "FILENAME (without extension) to compile from and render to.") do |file|
-          options.file = file
-        end
-
-        opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
-          options.verbose = v
-        end
-
-        opts.separator ""
-        opts.separator "Common options:"
-
-        # No argument, shows at tail.  This will print an options summary.
-        # Try it and see!
-        opts.on_tail("-h", "--help", "Show this message") do
-          puts opts
-          exit
-        end
-
-        # Another typical switch to print the version.
-        opts.on_tail("--version", "Show version") do
-          puts FreshVectorSalad::VERSION
-          exit
-        end
-      end
-
-      opt_parser.parse!(args)
-      options
-    end
-  end
-
-
   class Callbacks
     def initialize(options, image, label)
       @options, @image, @label = options, image, label
     end
 
     def success
-      @image.file = "#{@options.path}/#{@options.file}.png"
+      @image.file = "#{@options.naked_file}.png"
       @label.height = @image.height + 10
       @label.width = @image.width + 10
-      @label.background = 'white'
+      @label.background = "white"
       @label.pack
     end
 
     def error
-      @label.background = 'red'
+      @label.background = "red"
     end
   end
 end
 
-options = FreshVectorSalad::FreshOptparse.parse(ARGV)
-options.filepath = "#{options.path}/#{options.file}"
+module VectorSalad
+  class Optparse
+    defaults[:verbose] = false
+    defaults[:dpi] = 90
+
+    self.tool_name = "fresh_vector_salad"
+
+    optparse.on_head("-d", "--dpi DPI", "Export DPI (default 90). Use to shrink or expand the preview.") do |dpi|
+      options.dpi = dpi
+    end
+
+    optparse.on_head("-v", "--[no-]verbose", "Run verbosely") do |v|
+      options.verbose = v
+    end
+
+    optparse.on_tail("--version", "Show version") do
+      puts FreshVectorSalad::VERSION
+      exit
+    end
+  end
+end
+
+ARGV << "-h" if ARGV.empty?
+options = VectorSalad::Optparse.parse(ARGV)
+options.naked_file = options.file[0...-3]
 
 TkRoot.new do
   title "Fresh Vector Salad"
 end
 
-image = TkPhotoImage.new()
+image = TkPhotoImage.new
 
 label = TkLabel.new
 label.image = image
@@ -117,9 +75,9 @@ fvs.auto_compile
   #fvs.auto_compile if modified.any?{ |m| m =~ /\.rb$/ }
 #end.start
 Thread.new do
-  last = File.stat("#{options.filepath}.rb").mtime
-  while true
-    now = File.stat("#{options.filepath}.rb").mtime
+  last = File.stat(options.file).mtime
+  loop do
+    now = File.stat(options.file).mtime
     if now > last
       fvs.auto_compile
       last = now
